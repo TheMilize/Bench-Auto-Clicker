@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\BenchAutoClicker.ico</ApplicationIcon>
+    <AssemblyName>BenchAutoClicker</AssemblyName>
+    <RootNamespace>BenchAutoClicker</RootNamespace>
+    <Version>1.6.0</Version>
+    <AssemblyVersion>1.6.0.0</AssemblyVersion>
+    <FileVersion>1.6.0.0</FileVersion>
+    <InformationalVersion>1.6.0-adaptive-layout-profiles</InformationalVersion>
+    <Authors>Bench Auto Clicker</Authors>
+    <Copyright>Copyright © 2026 Bench Auto Clicker contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Product>Bench Auto Clicker 1.6</Product>
+    <Description>Безопасный многорежимный автокликер для Windows</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\BenchAutoClicker.ico" LogicalName="BenchAutoClicker.Assets.BenchAutoClicker.ico" />
+    <EmbeddedResource Include="Assets\bench-auto-clicker-icon.png" LogicalName="BenchAutoClicker.Assets.bench-auto-clicker-icon.png" />
+    <None Include="..\LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

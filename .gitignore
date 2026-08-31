@@ -1,0 +1,44 @@
+# Local SDK and IDE state
+/.dotnet-cli/
+/.vs/
+/.vscode/
+/.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET build and test output
+**/bin/
+**/obj/
+/TestResults/
+/.compat-check/
+*.coverage
+*.coveragexml
+
+# Published binaries are produced locally
+/release/
+
+# Temporary files and logs
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# Secrets and local config
+.env
+.env.*
+*.pfx
+*.key
+secrets.json
+credentials.json
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Cursor / editor artifacts
+.cursor/
