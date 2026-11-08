@@ -40,7 +40,48 @@ var checks = new (string Name, Action Run)[]
     ("Screen center is calculated for Full HD", () =>
         EqualPoint(new Point(960, 540), TargetMath.CenterOf(new Rectangle(0, 0, 1920, 1080)))),
     ("Screen center supports negative monitor coordinates", () =>
-        EqualPoint(new Point(-540, 1051), TargetMath.CenterOf(new Rectangle(-1080, 91, 1080, 1920))))
+        EqualPoint(new Point(-540, 1051), TargetMath.CenterOf(new Rectangle(-1080, 91, 1080, 1920)))),
+    ("Non-finite CPS and intervals are rejected", () =>
+    {
+        foreach (var invalid in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+        {
+            Throws<ArgumentOutOfRangeException>(() => ScheduleMath.IntervalFromClicksPerSecond(invalid));
+            Throws<ArgumentOutOfRangeException>(() => ScheduleMath.IntervalFromMilliseconds(invalid));
+        }
+    }),
+    ("Non-finite random bounds are rejected", () =>
+    {
+        Throws<ArgumentOutOfRangeException>(() => ScheduleMath.ValidateRandomBounds(double.NaN, 15));
+        Throws<ArgumentOutOfRangeException>(() => ScheduleMath.ValidateRandomBounds(1, double.NaN));
+    }),
+    ("Non-finite burst pause is rejected", () =>
+        Throws<ArgumentOutOfRangeException>(() => ClickConfigurationValidator.Validate(
+            Configuration(ClickMode.Burst) with { BurstPauseSeconds = double.NaN }))),
+    ("Invalid session limits are rejected", () =>
+    {
+        Throws<ArgumentOutOfRangeException>(() => ClickConfigurationValidator.Validate(
+            Configuration(ClickMode.Speed) with { MaxClicks = -1 }));
+        Throws<ArgumentOutOfRangeException>(() => ClickConfigurationValidator.Validate(
+            Configuration(ClickMode.Speed) with { MaxDurationSeconds = double.NaN }));
+        Throws<ArgumentOutOfRangeException>(() => ClickConfigurationValidator.Validate(
+            Configuration(ClickMode.Speed) with { MaxDurationSeconds = 86401 }));
+    }),
+    ("Speed engine stops exactly at physical click limit", () => EngineChecks.SpeedLimit().GetAwaiter().GetResult()),
+    ("Double-click engine respects odd physical limit", () => EngineChecks.DoubleClickLimit(3, 2).GetAwaiter().GetResult()),
+    ("A double click cannot exceed a one-click limit", () => EngineChecks.DoubleClickLimit(1, 0).GetAwaiter().GetResult()),
+    ("Random mode waits before its first click", () => EngineChecks.RandomFirstWait().GetAwaiter().GetResult()),
+    ("Random mode can stop during an hour-long wait", () => EngineChecks.StopRandomWait().GetAwaiter().GetResult()),
+    ("Burst mode respects series size and pause", () => EngineChecks.BurstCadence().GetAwaiter().GetResult()),
+    ("Duration limit interrupts a long random wait without clicking", () => EngineChecks.DurationLimit().GetAwaiter().GetResult()),
+    ("Blocked clicks do not consume physical click limit", () => EngineChecks.BlockedClicks().GetAwaiter().GetResult()),
+    ("Engine stops and restarts without duplicate workers", () => EngineChecks.Restart().GetAwaiter().GetResult()),
+    ("Subscriber exceptions do not break the engine", () => EngineChecks.ObserverFailure().GetAwaiter().GetResult()),
+    ("Slow input does not trigger catch-up clicks", () => EngineChecks.NoCatchUp().GetAwaiter().GetResult()),
+    ("Input exceptions stop the engine and report fault", () => EngineChecks.InputFailure().GetAwaiter().GetResult()),
+    ("Engine metrics freeze after stop", () => EngineChecks.FrozenMetrics().GetAwaiter().GetResult()),
+    ("Duration limit interrupts a burst pause", () => EngineChecks.BurstDuration().GetAwaiter().GetResult()),
+    ("Duration shorter than speed interval never emits an early click", () => EngineChecks.SpeedDuration().GetAwaiter().GetResult()),
+    ("Disposed engine rejects new starts", () => EngineChecks.DisposedStart().GetAwaiter().GetResult())
 };
 
 var failures = 0;

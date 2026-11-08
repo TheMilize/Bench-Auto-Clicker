@@ -3,20 +3,24 @@ namespace BenchAutoClicker;
 static class Program
 {
     [STAThread]
-    static void Main()
+    static void Main(string[] args)
     {
+        var launchedAtLogin = args.Contains("--startup", StringComparer.OrdinalIgnoreCase);
         using var singleInstance = new Mutex(true, @"Local\BenchAutoClicker.SingleInstance", out var isFirstInstance);
         if (!isFirstInstance)
         {
-            MessageBox.Show(
-                "Bench Auto Clicker уже запущен.",
-                "Bench Auto Clicker",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            if (!launchedAtLogin)
+            {
+                AppActivation.TryActivate();
+            }
             return;
         }
 
         ApplicationConfiguration.Initialize();
-        Application.Run(new MainForm());
+        Theme.RefreshFromWindows();
+        using var mainWindow = new MainForm();
+        mainWindow.ConfigureShell(launchedAtLogin);
+        using var activation = new AppActivation(mainWindow, mainWindow.ShowMainSettings);
+        Application.Run(mainWindow);
     }
 }

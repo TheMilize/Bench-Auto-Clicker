@@ -30,15 +30,34 @@ internal static class SettingsStore
 
     public static void Save(UserPreferences preferences)
     {
+        string? temporaryPath = null;
         try
         {
             Directory.CreateDirectory(SettingsDirectory);
             var json = JsonSerializer.Serialize(preferences, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(SettingsPath, json);
+            // A crash while writing must not truncate the last valid preferences.
+            // The final rename stays on the same volume and replaces the file atomically.
+            temporaryPath = Path.Combine(SettingsDirectory, $"settings-{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(temporaryPath, json);
+            File.Move(temporaryPath, SettingsPath, overwrite: true);
         }
         catch
         {
             // Настройки необязательны: приложение продолжит работать с текущими значениями.
+        }
+        finally
+        {
+            if (temporaryPath is not null)
+            {
+                try
+                {
+                    File.Delete(temporaryPath);
+                }
+                catch
+                {
+                    // A stale temporary file must not prevent the application from exiting.
+                }
+            }
         }
     }
 }

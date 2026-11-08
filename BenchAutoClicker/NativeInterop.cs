@@ -27,6 +27,20 @@ internal static class NativeInterop
     private const int SmCyVirtualScreen = 79;
     private const uint GaRoot = 2;
 
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr windowHandle, int attribute, ref int value, int size);
+
+    public static void ApplyDarkWindowFrame(IntPtr windowHandle) => ApplyWindowFrame(windowHandle, true);
+
+    public static void ApplyWindowFrame(IntPtr windowHandle, bool isDark)
+    {
+        var enabled = isDark ? 1 : 0;
+        // Unsupported attributes return HRESULT and preserve the normal frame on older Windows.
+        _ = DwmSetWindowAttribute(windowHandle, 20, ref enabled, sizeof(int));
+        var roundedCorners = 2;
+        _ = DwmSetWindowAttribute(windowHandle, 33, ref roundedCorners, sizeof(int));
+    }
+
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool RegisterHotKey(IntPtr windowHandle, int id, uint modifiers, uint virtualKey);
@@ -65,7 +79,8 @@ internal static class NativeInterop
     {
         if (!GetCursorPos(out var point))
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Не удалось определить позицию курсора.");
+            throw new Win32Exception(Marshal.GetLastWin32Error(), ErrorText(
+                "Не удалось определить позицию курсора.", "The cursor position could not be read."));
         }
 
         return new Point(point.X, point.Y);
@@ -127,11 +142,16 @@ internal static class NativeInterop
         {
             var error = Marshal.GetLastWin32Error();
             RecoverAfterPartialInput(inputArray, sent, down, up, moved, original);
-            throw new Win32Exception(error, "Windows не приняла команду клика. Возможно, целевое окно запущено от администратора.");
+            throw new Win32Exception(error, ErrorText(
+                "Windows не приняла команду клика. Возможно, целевое окно запущено от администратора.",
+                "Windows did not accept the click. The target app may be running as administrator."));
         }
 
         return ClickResult.Sent(target, physicalClicks);
     }
+
+    private static string ErrorText(string russian, string english) =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? russian : english;
 
     private static Point AddJitter(Point point, int radius)
     {
@@ -300,13 +320,4 @@ internal static class NativeInterop
         public RECT WorkArea;
         public uint Flags;
     }
-}
-
-internal readonly record struct ClickResult(bool WasSent, bool WasBlocked, Point Position, int PhysicalClickCount)
-{
-    public static ClickResult Sent(Point position, int physicalClickCount) =>
-        new(true, false, position, physicalClickCount);
-
-    public static ClickResult Blocked(Point position) =>
-        new(false, true, position, 0);
 }

@@ -12,6 +12,7 @@
 **/bin/
 **/obj/
 /TestResults/
+/artifacts/
 /.compat-check/
 *.coverage
 *.coveragexml

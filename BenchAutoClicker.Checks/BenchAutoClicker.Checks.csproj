@@ -9,5 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\BenchAutoClicker\Models.cs" Link="Models.cs" />
+    <Compile Include="..\BenchAutoClicker\ClickEngine.cs" Link="ClickEngine.cs" />
+    <Compile Include="..\BenchAutoClicker\NativeInterop.cs" Link="NativeInterop.cs" />
   </ItemGroup>
 </Project>

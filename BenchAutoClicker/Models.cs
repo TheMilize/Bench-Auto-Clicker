@@ -35,7 +35,24 @@ public sealed record ClickConfiguration(
     int BurstClickCount,
     double BurstClicksPerSecond,
     double BurstPauseSeconds,
-    IntPtr ExcludedWindowHandle);
+    IntPtr ExcludedWindowHandle,
+    long MaxClicks = 0,
+    double MaxDurationSeconds = 0);
+
+public enum SessionEndReason
+{
+    ClickLimit,
+    DurationLimit
+}
+
+internal readonly record struct ClickResult(bool WasSent, bool WasBlocked, Point Position, int PhysicalClickCount)
+{
+    public static ClickResult Sent(Point position, int physicalClickCount) =>
+        new(true, false, position, physicalClickCount);
+
+    public static ClickResult Blocked(Point position) =>
+        new(false, true, position, 0);
+}
 
 public sealed class UserPreferences
 {
@@ -55,8 +72,17 @@ public sealed class UserPreferences
     public decimal BurstPauseSeconds { get; set; } = 3;
     public int StartDelaySeconds { get; set; } = 3;
     public bool AlwaysOnTop { get; set; }
-    public int WindowWidth { get; set; } = 640;
-    public int WindowHeight { get; set; } = 500;
+    public string Language { get; set; } = "system";
+    public bool LaunchAtLogin { get; set; }
+    public bool TrayMode { get; set; }
+    public string ToggleHotkey { get; set; } = "F6";
+    public string SpeedHotkey { get; set; } = "Ctrl+Shift+1";
+    public string RandomHotkey { get; set; } = "Ctrl+Shift+2";
+    public string BurstHotkey { get; set; } = "Ctrl+Shift+3";
+    public long MaxClicks { get; set; }
+    public double MaxDurationSeconds { get; set; }
+    public int WindowWidth { get; set; } = 760;
+    public int WindowHeight { get; set; } = 620;
 }
 
 public static class ScheduleMath
@@ -68,7 +94,7 @@ public static class ScheduleMath
 
     public static TimeSpan IntervalFromClicksPerSecond(double clicksPerSecond)
     {
-        if (clicksPerSecond is < MinimumClicksPerSecond or > MaximumClicksPerSecond)
+        if (!double.IsFinite(clicksPerSecond) || clicksPerSecond is < MinimumClicksPerSecond or > MaximumClicksPerSecond)
         {
             throw new ArgumentOutOfRangeException(nameof(clicksPerSecond));
         }
@@ -78,7 +104,7 @@ public static class ScheduleMath
 
     public static TimeSpan IntervalFromMilliseconds(double milliseconds)
     {
-        if (milliseconds is < MinimumIntervalMilliseconds or > MaximumIntervalMilliseconds)
+        if (!double.IsFinite(milliseconds) || milliseconds is < MinimumIntervalMilliseconds or > MaximumIntervalMilliseconds)
         {
             throw new ArgumentOutOfRangeException(nameof(milliseconds));
         }
@@ -100,7 +126,8 @@ public static class ScheduleMath
 
     public static void ValidateRandomBounds(double minimumSeconds, double maximumSeconds)
     {
-        if (minimumSeconds < 0.1 || maximumSeconds < minimumSeconds || maximumSeconds > 3600)
+        if (!double.IsFinite(minimumSeconds) || !double.IsFinite(maximumSeconds) ||
+            minimumSeconds < 0.1 || maximumSeconds < minimumSeconds || maximumSeconds > 3600)
         {
             throw new ArgumentOutOfRangeException(nameof(minimumSeconds));
         }
@@ -122,6 +149,12 @@ public static class ClickConfigurationValidator
         {
             throw new ArgumentOutOfRangeException(nameof(configuration.JitterRadius));
         }
+        if (configuration.MaxClicks is < 0 or > 1_000_000_000 ||
+            !double.IsFinite(configuration.MaxDurationSeconds) ||
+            configuration.MaxDurationSeconds is < 0 or > 86400)
+        {
+            throw new ArgumentOutOfRangeException(nameof(configuration));
+        }
 
         switch (configuration.Mode)
         {
@@ -135,6 +168,7 @@ public static class ClickConfigurationValidator
                 break;
             case ClickMode.Burst:
                 if (configuration.BurstClickCount is < 1 or > 500 ||
+                    !double.IsFinite(configuration.BurstPauseSeconds) ||
                     configuration.BurstPauseSeconds is < 0.1 or > 3600)
                 {
                     throw new ArgumentOutOfRangeException(nameof(configuration));
